@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-23T13:04+00:00",
+  "updated": "2026-09-23T13:10+00:00",
   "meta": {
     "task-000": {
       "title": "Бой #000: Сверчок-12",
@@ -9,6 +9,61 @@
       "summary": "Эмулятор выдуманной 12-битной ЭВМ и её техническое описание. Скрытые тесты сравнивают эмулятор с эталоном после каждого шага: регистры, флаги, такты, вся память, вывод. Проверяется каждая команда в каждом режиме, а не только программы из `programs/`."
     }
   },
-  "tasks": {},
-  "overall": []
+  "tasks": {
+    "task-000": [
+      {
+        "id": "task-000/Aidamirrrrrr-codex-bare",
+        "task": "task-000",
+        "author": "Aidamirrrrrr",
+        "setup": "codex-bare",
+        "harness": "codex",
+        "harness_version": "0.147.0",
+        "model": "gpt-5.6-sol",
+        "skills": [],
+        "mcp": [],
+        "rules_url": "",
+        "time": "4m33s",
+        "time_s": 273,
+        "tokens": 318448,
+        "tokens_in": 312098,
+        "tokens_out": 6350,
+        "tokens_cached": 282368,
+        "cost_usd": null,
+        "verified": true,
+        "status": "ok",
+        "note": "",
+        "log_format": "codex",
+        "turns": 1,
+        "cost_source": null,
+        "diff_lines": 37,
+        "test_lines": 109,
+        "files_changed": 1,
+        "quality_penalty": 0,
+        "quality_hits": {},
+        "passed": 58,
+        "total": 58,
+        "pass_pct": 100.0,
+        "rank": 1
+      }
+    ]
+  },
+  "overall": [
+    {
+      "setup": "codex-bare",
+      "author": "Aidamirrrrrr",
+      "harness": "codex",
+      "model": "gpt-5.6-sol",
+      "skills": [],
+      "mcp": [],
+      "tasks": 1,
+      "solved": 1,
+      "wins": 1,
+      "points": 25,
+      "penalty": 0,
+      "cost_usd": null,
+      "tokens": 318448,
+      "avg_pct": 100.0,
+      "rank": 1
+    }
+  ]
 }
