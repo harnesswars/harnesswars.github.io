@@ -24,6 +24,7 @@
     --body: "Rubik", system-ui, sans-serif;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html { background: var(--bg); }
   body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 var(--body);
          font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
@@ -82,13 +83,7 @@
   .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 14px; }
   .filters .tab { font-size: 14px; padding: 6px 34px 6px 12px; }
   .filters .tab.on { border-color: var(--blue-lt); color: var(--text); }
-  .scroll { overflow-x: auto; }
-  table.matrix { border-collapse: separate; border-spacing: 6px; min-width: 100%; }
-  .matrix th { font-weight: 500; text-align: left; vertical-align: middle; }
-  .matrix td { background: var(--panel); border: 3px solid var(--ink); padding: 12px 14px; min-width: 150px; vertical-align: top; }
-  .matrix td b { font-size: 18px; } .matrix td small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
-  .matrix td.none { background: transparent; border-style: dashed; border-color: var(--line); color: var(--faint); text-align: center; vertical-align: middle; }
-  .hp.mini { height: 8px; border-width: 1px; margin-top: 6px; } .hp.mini::after { display: none; }
+
 
   .roster { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
   .fighter { display: grid; grid-template-columns: 64px minmax(0, 1.3fr) minmax(0, 1fr) 300px; gap: 18px; align-items: center;
@@ -186,10 +181,9 @@
 
   <section aria-labelledby="arena-title">
     <div class="arena-head">
-      <h2 class="px" id="arena-title">Турнирная таблица</h2>
-      <div class="tabs" role="group" aria-label="Что показать">
+      <h2 class="px" id="arena-title">Таблица бойцов</h2>
+      <div class="tabs" id="tabs" role="group" aria-label="Что показать" hidden>
         <select class="tab" id="task-select" aria-label="Бой"></select>
-        <button class="tab" id="btn-matrix" aria-pressed="false">Харнес × модель</button>
         <button class="tab" id="btn-overall" aria-pressed="false">Общий зачёт</button>
       </div>
     </div>
@@ -230,7 +224,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const md = s => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
 const num = n => (n || n === 0) ? Number(n).toLocaleString("ru-RU") : "нет";
 const kilo = n => (n || n === 0) ? (n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? Math.round(n / 1e3) + "K" : String(n)) : "нет";
-const usd = n => (n || n === 0) ? "$" + (n < 10 ? n.toFixed(2) : Math.round(n)) : "нет";
+const usd = n => (n || n === 0) ? "$" + (n < 10 ? n.toFixed(2) : Math.round(n)) : "н/д";
 const check = r => r.verified ? ` <span class="ok" title="Цифры взяты из лога сессии">✓ лог</span>` : "";
 const plural = (n, one, few, many) => {
   const m10 = n % 10, m100 = n % 100;
@@ -284,7 +278,7 @@ function renderTask(task) {
   const out = rows.filter(r => !r.rank);
   const m = (board.meta || {})[task] || {};
   $("note").textContent = ranked.length
-    ? `${m.title || task}. Порядок: тесты, затем штрафы, затем цена в долларах, токены и время. «✓ лог» значит, что цифры взяты из лога сессии, а не со слов участника.` : "";
+    ? "Кто выше: больше тестов, потом меньше штрафов, потом дешевле и быстрее. «✓ лог» значит, что цифры взяты из лога сессии." : "";
   if (!ranked.length && !out.length) { $("board").innerHTML = empty(); return; }
   const card = r => {
     const pct = r.pass_pct ?? 0;
@@ -321,39 +315,14 @@ function renderOverall() {
     </li>`).join("")}</ol>`;
 }
 
-function renderMatrix(task) {
-  const rows = ((board.tasks || {})[task] || []).filter(r => r.rank);
-  $("note").textContent = `Бой #${fightNo(task)}: лучший результат каждой пары. По строкам харнесы, по столбцам модели: ` +
-    "в одном столбце видно, что даёт харнес при одной и той же модели.";
-  if (!rows.length) { $("board").innerHTML = empty(); return; }
-  const hs = [...new Set(rows.map(r => r.harness))].sort();
-  const ms = [...new Set(rows.map(r => r.model))].sort();
-  const cell = (h, m) => {
-    const best = rows.filter(r => r.harness === h && r.model === m).sort((a, b) => a.rank - b.rank);
-    if (!best.length) return `<td class="none">пусто</td>`;
-    const r = best[0], pct = r.pass_pct ?? 0;
-    const price = r.cost_usd != null ? usd(r.cost_usd) : kilo(r.tokens) + " ток.";
-    return `<td><b>${pct}%</b> <span class="px" style="font-size:10px;color:var(--muted)">#${r.rank}</span>
-      <div class="hp mini"><i style="width:${pct}%;--c:${hpColor(pct)}"></i></div>
-      <small>${price} · ${esc(r.time) || "нет"}${r.verified ? " · ✓" : ""}</small>
-      <small>${esc(r.setup)}${best.length > 1 ? ` и ещё ${best.length - 1}` : ""}</small></td>`;
-  };
-  $("board").innerHTML = `<div class="scroll"><table class="matrix"><thead><tr><th></th>${
-    ms.map(m => `<th><span class="chip m">${esc(m)}</span></th>`).join("")}</tr></thead><tbody>${
-    hs.map(h => `<tr><th><span class="chip h">${esc(h)}</span></th>${ms.map(m => cell(h, m)).join("")}</tr>`).join("")
-  }</tbody></table></div>`;
-}
-
 let view = "";
 function show(v, keepHash = false) {
   view = v;
-  const [kind, task] = v === "overall" ? ["overall"] : v.startsWith("matrix:") ? ["matrix", v.slice(7)] : ["task", v];
+  const [kind, task] = v === "overall" ? ["overall"] : ["task", v];
   $("btn-overall").setAttribute("aria-pressed", kind === "overall");
-  $("btn-matrix").setAttribute("aria-pressed", kind === "matrix");
   $("task-select").setAttribute("aria-pressed", kind === "task");
-  document.querySelector(".filters").hidden = kind === "matrix";
   if (task) $("task-select").value = task;
-  if (kind === "overall") renderOverall(); else if (kind === "matrix") renderMatrix(task); else renderTask(task);
+  if (kind === "overall") renderOverall(); else renderTask(task);
   if (!keepHash) history.replaceState(null, "", "#" + v);
 }
 
@@ -364,7 +333,9 @@ function fillFilters(data) {
     const el = $(id);
     el.innerHTML = `<option value="">${all}</option>` + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
     el.onchange = () => { filt[key] = el.value; el.classList.toggle("on", !!el.value); show(view); };
+    el.hidden = names.length < 2;
   }
+  document.querySelector(".filters").hidden = $("f-harness").hidden && $("f-model").hidden;
 }
 
 fetch("data/leaderboard.json", { cache: "no-store" })
@@ -377,12 +348,12 @@ fetch("data/leaderboard.json", { cache: "no-store" })
     $("task-select").innerHTML = tasks.map(t => `<option value="${esc(t)}">Бой #${esc(fightNo(t))}${
       t === tasks[0] ? " (сегодня)" : ""}</option>`).join("");
     renderHero(tasks[0]);
-    $("task-select").onchange = e => show(view.startsWith("matrix:") ? "matrix:" + e.target.value : e.target.value);
+    $("task-select").onchange = e => show(e.target.value);
     $("btn-overall").onclick = () => show("overall");
-    $("btn-matrix").onclick = () => show("matrix:" + $("task-select").value);
+    $("tabs").hidden = tasks.length < 2;
     fillFilters(data);
     const hash = decodeURIComponent(location.hash.slice(1));
-    const known = hash === "overall" || tasks.includes(hash) || tasks.includes(hash.replace(/^matrix:/, ""));
+    const known = (hash === "overall" && tasks.length > 1) || tasks.includes(hash);
     show(known ? hash : tasks[0], !known);
   })
   .catch(() => { $("fight-title").textContent = "Нет связи"; $("board").innerHTML =
